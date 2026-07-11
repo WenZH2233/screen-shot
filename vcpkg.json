@@ -1,0 +1,20 @@
+{
+  "dependencies": [
+    "dacap-clip",
+    "glfw3",
+    "nlohmann-json",
+    {
+      "name": "skia",
+      "features": [
+        "freetype",
+        "gl",
+        "harfbuzz",
+        "icu",
+        "jpeg",
+        "png",
+        "webp"
+      ]
+    },
+    "utfcpp"
+  ]
+}
