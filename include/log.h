@@ -15,7 +15,6 @@ enum class op{
     time
 };
 class _log{
-    std::string getLogPath();
     std::string cache;
     std::thread logThread;
     std::ofstream logFile;
@@ -23,6 +22,7 @@ class _log{
 public:
     _log();
     ~_log();
+	void exit();
     void init();
     void log(const std::string& message);
     void log(op operation);

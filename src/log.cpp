@@ -8,40 +8,20 @@
 
 namespace core{
     _log Log;
-    std::string _log::getLogPath(){
-#ifdef _WIN32
-        char* appDataPath = nullptr;
-        size_t len = 0;
-        _dupenv_s(&appDataPath, &len, "APPDATA");
-        if (appDataPath) {
-            std::string logPath = std::string(appDataPath) + "\\screen-shot\\log.txt";
-            free(appDataPath);
-            return logPath;
-        } else {
-            std::cerr << "Failed to get APPDATA environment variable." << std::endl;
-            return "log.txt"; // Fallback to current directory
-        }
-#else
-        const char* homeDir = getenv("HOME");
-        if (homeDir) {
-            std::string logPath = std::string(homeDir) + "/.screen-shot/log.txt";
-            return logPath;
-        } else {
-            std::cerr << "Failed to get HOME environment variable." << std::endl;
-            return "log.txt"; // Fallback to current directory
-        }
-#endif
-            
-    }
     _log::_log() {}
-    _log::~_log() {
-        if(logThread.joinable()) {
+    _log::~_log() {}
+    void _log::exit(){
+        if (logThread.joinable()) {
             logThread.join();
+        }
+        if (!cache.empty()) {
+            logFile << cache;
+            cache.clear();
         }
         logFile.close();
     }
     void _log::init() {
-        std::string logPath = getLogPath();
+        std::string logPath = dataPath+"log.log";
         std::filesystem::path logDir = std::filesystem::path(logPath).parent_path();
         if (!std::filesystem::exists(logDir)) {
             std::filesystem::create_directories(logDir);
@@ -72,7 +52,7 @@ namespace core{
     void _log::log(op operation) {
         switch (operation) {
             case op::endl:
-                cache += "\n";
+                log("\n");
                 logMutex.unlock();
                 break;
             case op::time: {

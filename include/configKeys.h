@@ -1,0 +1,10 @@
+#pragma once
+
+// Hotkeys
+#define HOTKRY_SHOT_SCREEN "hotkey_shot_screen"
+#define HOTKEY_SHOT_SCREEN_AND_COPY "hotkey_shot_screen_and_copy"
+#define HOTKEY_SHOT_FULLSCREEN "hotkey_shot_fullscreen"
+#define HOTKEY_SHOT_FULLSCREEN_AND_COPY "hotkey_shot_fullscreen_and_copy"
+#define HOTKEY_SHOT_ACTIVE_WINDOW "hotkey_shot_active_window"
+#define HOTKEY_SHOT_ACTIVE_WINDOW_AND_COPY "hotkey_shot_active_window_and_copy"
+
