@@ -141,5 +141,16 @@ namespace core{
         this->log(std::to_string(message));
         return *this;
     }
-
+	_log& _log::operator<<(const std::vector<int>& message) {
+		std::string vecStr = "[";
+		for (size_t i = 0; i < message.size(); ++i) {
+			vecStr += std::to_string(message[i]);
+			if (i < message.size() - 1) {
+				vecStr += ", ";
+			}
+		}
+		vecStr += "]";
+		this->log(vecStr);
+		return *this;
+	}
 }

@@ -3,6 +3,7 @@
 #include <thread>
 #include <fstream>
 #include <mutex>
+#include <vector>
 
 namespace core{
 enum class Level {
@@ -42,6 +43,7 @@ public:
     _log& operator<<(const unsigned long long message);
     _log& operator<<(const float message);
     _log& operator<<(const double message);
+	_log& operator<<(const std::vector<int>& message);
 };
 extern _log Log;
 }

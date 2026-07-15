@@ -8,3 +8,5 @@
 #define HOTKEY_SHOT_ACTIVE_WINDOW "hotkey_shot_active_window"
 #define HOTKEY_SHOT_ACTIVE_WINDOW_AND_COPY "hotkey_shot_active_window_and_copy"
 
+#define PATH_SCREENSHOTS_SAVE_DIR "path_screenshots_save_dir"
+

@@ -44,7 +44,7 @@ namespace core {
         dataPath=std::string(home)+"/.screen-shot/"
 #endif
         Log.init();
-        Log.level(Level::INFO)<<"appPath: "<<appPath<<" dataPath: "<<dataPath<<op::endl;
+        Log.level(Level::INFO) << "appPath: " << appPath << " dataPath: " << dataPath << op::endl;
 		Config::getInstance().init(dataPath + "config.json");
     }
 
