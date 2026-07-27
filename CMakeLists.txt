@@ -405,6 +405,13 @@ message(STATUS "Using vcpkg dependencies")
 #   find_package(glfw3 CONFIG REQUIRED)
 #   find_package(nlohmann_json CONFIG REQUIRED)
 
+set(TRAYPP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/traypp")
+if(NOT EXISTS "${TRAYPP_SOURCE_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "traypp source directory not found: ${TRAYPP_SOURCE_DIR}")
+endif()
+
+add_subdirectory("${TRAYPP_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/traypp" EXCLUDE_FROM_ALL)
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(clip CONFIG REQUIRED)
 find_package(unofficial-skia CONFIG REQUIRED)
@@ -428,6 +435,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # ---- 链接 ----
 target_link_libraries(${PROJECT_NAME} PRIVATE
     # 在这里添加你的链接库
+    tray
     glfw
     clip::clip
     unofficial::skia::skia

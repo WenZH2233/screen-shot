@@ -150,3 +150,7 @@ std::string core::operator"" _lang(const char* str, size_t len) {
 	std::string key(str, len);
 	return Lang::getInstance()->get(key);
 }
+
+std::string core::lang(const std::string& key) {
+    return Lang::getInstance()->get(key);
+}

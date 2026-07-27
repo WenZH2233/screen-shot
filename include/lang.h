@@ -36,4 +36,5 @@ namespace core{
         nlohmann::json lang_data;
     };
 	std::string operator"" _lang(const char* str, size_t len);
+    std::string lang(const std::string& key);
 }
