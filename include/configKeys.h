@@ -10,3 +10,5 @@
 
 #define PATH_SCREENSHOTS_SAVE_DIR "path_screenshots_save_dir"
 
+// Language
+#define LANG "lang"

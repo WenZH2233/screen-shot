@@ -15,6 +15,7 @@
         "webp"
       ]
     },
-    "utfcpp"
+    "utfcpp",
+    "icu"
   ]
 }

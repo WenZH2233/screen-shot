@@ -21,12 +21,12 @@ namespace core{
         logFile.close();
     }
     void _log::init() {
-        std::string logPath = dataPath+"log.log";
+        std::string logPath = dataPath+"/log.log";
         std::filesystem::path logDir = std::filesystem::path(logPath).parent_path();
         if (!std::filesystem::exists(logDir)) {
             std::filesystem::create_directories(logDir);
         }
-        logFile.open(logPath, std::ios::app);
+        logFile.open(logPath, std::ios::ate);
         if (!logFile.is_open()) {
             std::cerr << "Failed to open log file: " << logPath << std::endl;
             return;

@@ -5,17 +5,10 @@ int main(int argc, char* argv[]) {
     std::cout << "Hello, World!" << std::endl;
     core::init();
 
-    std::string hotkeyStr = "lshift";
-	int keyCode = core::hotkey::fromStringToKeyCode(hotkeyStr);
+    std::string langStr = Lang::langType2String(Lang::getInstance()->getCurrentLangType());
 
-	Log.level(Level::INFO) << "Hotkey string: " << hotkeyStr << ", Key code: " << keyCode << op::endl;
-    keyCode = 340;
-	Log.level(Level::INFO) << "Key code: " << keyCode << ", Hotkey string: " << core::hotkey::fromKeyCodeToString(keyCode) << op::endl;
-
-	hotkeyStr = "lshift+f1";
-	Log.level(Level::INFO) << "Hotkey string: " << hotkeyStr << ", Key codes: " << core::hotkey::fromStringToKeyCodes(hotkeyStr) << op::endl;
-	std::vector<int> keyCodes = { GLFW_KEY_LEFT_ALT, GLFW_KEY_0 };
-	Log.level(Level::INFO) << "Key codes: " << keyCodes << ", Hotkey string: " << core::hotkey::fromKeyCodeToString(keyCodes) << op::endl;
+    Log.level(Level::INFO) << "Current Language: " << langStr << op::endl;
+	Log.level(Level::INFO) << "Translation for 'hello': " << "menu.pin"_lang << op::endl;
 
     core::exit();
 }
