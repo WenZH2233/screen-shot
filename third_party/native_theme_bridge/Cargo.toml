@@ -1,0 +1,11 @@
+[package]
+name = "native_theme_bridge"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+native-theme = { version = "0.5.7", default-features = false, features = ["windows", "macos", "linux"] }

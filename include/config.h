@@ -36,7 +36,7 @@ public:
     void init(const std::string& configFilePath);
     ConfigItem& get(const std::string& key);
     void set(const std::string& key, const ConfigItem& value);
-    void setifno(const std::string& key, const ConfigItem& value);
+    bool setifno(const std::string& key, const ConfigItem& value);
     void saveConfigFile();
 };
 }

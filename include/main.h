@@ -6,3 +6,4 @@
 #include "log.h"
 #include "hotkey.h"
 #include "lang.h"
+#include "Window/settingWindow.h"

@@ -82,6 +82,10 @@ namespace core{
         }
         return *this;
     }
+    _log& _log::logbool(const bool message) {
+        this->log(message ? "true" : "false");
+        return *this;
+    }
     _log& _log::operator<<(Level level) {
         return this->level(level);
     }

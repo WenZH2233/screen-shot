@@ -26,6 +26,7 @@ public:
 	void exit();
     void init();
     void log(const std::string& message);
+    _log& logbool(const bool message);
     void log(op operation);
     _log& level(Level level);
     _log& operator<<(Level level);

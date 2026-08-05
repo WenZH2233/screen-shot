@@ -3,6 +3,11 @@
 #include "log.h"
 #include "config.h"
 #include "lang.h"
+#include "color.h"
+#include "Window/Window.h"
+#include "native_theme_bridge.h"
+#include <tray.hpp>
+#include <GLFW/glfw3.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <ShlObj_core.h>
@@ -13,24 +18,46 @@
 #include <unicode/unistr.h>
 #include <unicode/utypes.h>
 
+#undef ERROR
 
-bool g_Quited = false;
-
+std::atomic_bool g_Quited = false;
+static std::thread trayThread;
 
 namespace core {
     std::string appPath,dataPath,systemLanguage;
+    std::atomic_bool isDarkMode = true;
+    Color systemAccentColor;
+    Color systemBackgroundColor;
+    Color systemTextColor;
+    
+    
     void init() {
         std::setlocale(LC_CTYPE, ".UTF-8");
         core_init::getAppPath();
         core_init::getDataPath();
         core_init::getSystemLanguage();
         Log.init();
-        Log.level(Level::INFO) << "appPath: " << appPath << " dataPath: " << dataPath << " systemLanguage: " << systemLanguage << op::endl;
+		refreshSystemThemeFromRust();
+        if (!glfwInit()) {
+            Log.level(Level::ERROR) << "Failed to initialize GLFW" << op::endl;
+            return;
+        }
+        Log.level(Level::INFO) << "appPath: " << appPath <<op::endl;
+        Log.level(Level::INFO) << "dataPath: " << dataPath << op::endl;
+        Log.level(Level::INFO) << "systemLanguage: " << systemLanguage << op::endl;
+        Log.level(Level::INFO) << "systemAccentColor: " << systemAccentColor.toHexStr() << op::endl;
+        Log.level(Level::INFO) << "systemBackgroundColor: " << systemBackgroundColor.toHexStr() << op::endl;
+        Log.level(Level::INFO) << "systemTextColor: " << systemTextColor.toHexStr() << op::endl;
+        Log.level(Level::INFO) << "isDarkMode: " << isDarkMode << op::endl;
 		Config::getInstance().init(dataPath + "/config.json");
         Lang::getInstance();
+		trayThread = std::thread(core_init::initTray);
+		trayThread.detach();
     }
 
     void exit() {
+		if (trayThread.joinable())trayThread.join();
+        glfwTerminate();
 		g_Quited = true;
 		Log.exit();
     }
@@ -48,10 +75,57 @@ namespace core {
         ustr.extract(0, ustr.length(), &wstr[0]);
         return wstr;
     }
+    std::string utf82gbk(const std::string& utf8_str){
+#ifdef _WIN32
+        int len = MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), -1, NULL, 0);
+        std::wstring wstr(len, L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(), -1, &wstr[0], len);
 
+        len = WideCharToMultiByte(936, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+        std::string gbk_str(len, '\0');
+        WideCharToMultiByte(936, 0, wstr.c_str(), -1, &gbk_str[0], len, NULL, NULL);
+
+        return gbk_str;
+#else
+        // 在非 Windows 平台上，直接返回原始字符串
+        return utf8_str;
+#endif
+    }
+
+    uint32_t Color::toHex() {
+        return (static_cast<uint32_t>(a) << 24) |
+         (static_cast<uint32_t>(r) << 16) |
+          (static_cast<uint32_t>(g) << 8) |
+           static_cast<uint32_t>(b);
+    }
+    std::string Color::toHexStr() {
+        char buffer[9];
+        snprintf(buffer, sizeof(buffer), "%02X%02X%02X%02X", r, g, b, a);
+        return std::string(buffer);
+    }
 
 
     namespace core_init{
+
+        void initTray(){
+            using namespace Tray;
+			std::string iconPath = appPath + "/files/icon/icon.png";
+			::Tray::Tray tray("screen-shot", iconPath);
+			tray.addEntry(Button(utf82gbk("tray.exit"_lang), [&]() {
+				tray.exit();
+                g_Quited = true;
+                for(auto& [type, windowPtr] : window::windows) {
+                    if (windowPtr) {
+                        windowPtr->stop();
+                    }
+                }
+			}));
+            tray.addEntry(Button(utf82gbk("tray.settings"_lang), [&]() {
+                window::windows[window::WindowType::SettingWindow]->show();
+            }));
+			tray.run();
+        }
+
         void getAppPath(){
 #ifdef _WIN32
             //用Windows API获取当前程序的路径

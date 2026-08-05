@@ -6,6 +6,8 @@
 #include "log.h"
 #include "version.h"
 
+static std::mutex configMutex;
+
 namespace core {
 
     Config* Config::instance = nullptr;
@@ -35,6 +37,7 @@ namespace core {
 
     void Config::readConfigFile()
     {
+        std::lock_guard<std::mutex> lock(configMutex);
         std::ifstream ConfigFile(ConfigFilePath);
         if (!ConfigFile.is_open())
         {
@@ -73,6 +76,7 @@ namespace core {
         }
     }
 	ConfigItem& Config::get(const std::string& key) {
+        std::lock_guard<std::mutex> lock(configMutex);
 		if (configItems.find(key) == configItems.end()) {
 			if (isDefault) {
 				Log.level(Level::ERROR) << "Default config item not found: " << key << op::endl;
@@ -84,18 +88,22 @@ namespace core {
 		return configItems[key];
 	}
 	void Config::set(const std::string& key, const ConfigItem& value) {
+        std::lock_guard<std::mutex> lock(configMutex);
 		configItems[key] = value;
 	}
-	void Config::setifno(const std::string& key, const ConfigItem& value) {
+	bool Config::setifno(const std::string& key, const ConfigItem& value) {
 		if(!isDefault)Config::getInstance(true).set(key, value);
         if (configItems.find(key) == configItems.end()) {
 			set(key, value);
+			return true;
 		}
+		return false;
 	}
     void Config::saveConfigFile() {
 		nlohmann::json ConfigJson;
 		ConfigJson["version"] = VERSION_STRING;
 		ConfigJson["fullVersion"] = VERSION_FULL_STRING;
+        ConfigJson["appName"] = "screen-shot";
 		nlohmann::json configItemsJson;
 		for (const auto& [key, value] : configItems) {
 			nlohmann::json configItemJson;
@@ -104,5 +112,24 @@ namespace core {
 			configItemsJson.push_back(configItemJson);
 		}
 		ConfigJson["configItems"] = configItemsJson;
+        Log.level(Level::INFO) << "Saving config file: " << ConfigFilePath << op::endl;
+        std::ofstream ConfigFile(ConfigFilePath);
+        if (!ConfigFile.is_open())
+        {
+            Log.level(Level::ERROR) << "Failed to open config file for writing: " << ConfigFilePath << op::endl;
+            return;
+        }
+        try
+        {
+            ConfigFile << ConfigJson.dump(4);
+        }
+        catch (std::exception e)
+        {
+            Log.level(Level::ERROR) << "Failed to write config file: " << ConfigFilePath << "Error info: " << e.what() << op::endl;
+        }
+        catch (...)
+        {
+            Log.level(Level::ERROR) << "Failed to write config file: " << ConfigFilePath << "Error info: Unknown error" << op::endl;
+        }
     }
 }

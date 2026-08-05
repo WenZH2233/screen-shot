@@ -395,6 +395,35 @@ if(ENABLE_UPGRADE AND UPGRADE_SOURCES)
 endif()
 
 
+# ==========================================================================
+#  15. Rust bridge — native-theme C ABI
+# ==========================================================================
+set(RUST_BRIDGE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/native_theme_bridge")
+set(RUST_BRIDGE_TARGET_DIR "${CMAKE_BINARY_DIR}/rust/native_theme_bridge")
+set(RUST_BRIDGE_BUILD_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/native_theme_bridge_build.cmake")
+
+find_program(CARGO_EXECUTABLE cargo
+    HINTS
+        "$ENV{USERPROFILE}/.cargo/bin"
+        "$ENV{CARGO_HOME}/bin"
+)
+
+if(NOT CARGO_EXECUTABLE)
+    message(FATAL_ERROR "cargo executable not found. Install Rust or add cargo to PATH.")
+endif()
+
+add_custom_target(native_theme_bridge_build ALL
+    COMMAND ${CMAKE_COMMAND}
+            -DNT_BRIDGE_CARGO=${CARGO_EXECUTABLE}
+            -DNT_BRIDGE_DIR=${RUST_BRIDGE_DIR}
+            -DNT_BRIDGE_TARGET_DIR=${RUST_BRIDGE_TARGET_DIR}
+            -DNT_BRIDGE_CONFIG=$<CONFIG>
+            -P ${RUST_BRIDGE_BUILD_SCRIPT}
+    COMMENT "Building Rust native-theme bridge"
+    VERBATIM
+)
+
+
 # ============================================================================
 #  15. 查找并链接依赖库 — 在这里添加你的 find_package 和链接
 # ============================================================================
@@ -429,12 +458,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${INC_DIR}
     ${CMAKE_BINARY_DIR}/generated
     ${SRC_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     # 在这里添加你的 xxx_INCLUDE_DIRS
+)
+
+target_link_directories(${PROJECT_NAME} PRIVATE
+    "$<$<CONFIG:Debug>:${RUST_BRIDGE_TARGET_DIR}/debug>$<$<NOT:$<CONFIG:Debug>>:${RUST_BRIDGE_TARGET_DIR}/release>"
 )
 
 # ---- 链接 ----
 target_link_libraries(${PROJECT_NAME} PRIVATE
     # 在这里添加你的链接库
+    native_theme_bridge
     tray
     glfw
     clip::clip
@@ -443,6 +478,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json::nlohmann_json
     utf8::cpp utf8cpp::utf8cpp
 )
+
+add_dependencies(${PROJECT_NAME} native_theme_bridge_build)
 
 # ---- upgrade 子程序（如启用） ----
 if(ENABLE_UPGRADE)
@@ -481,6 +518,8 @@ if(WIN32)
         kernel32
         shell32
         ole32
+        ws2_32
+        ntdll
     )
 
     if(ENABLE_UPGRADE)

@@ -12,3 +12,5 @@
 
 // Language
 #define LANG "lang"
+
+#define DARK_MODE "dark_mode"

@@ -2,11 +2,22 @@
 
 #include "hotkey.h"
 
+static const std::unordered_map<std::string, std::string> defaultConfigItems = {
+    {HOTKRY_SHOT_SCREEN, ""},
+    {LANG, "zh_CN"},
+    
+};
+
 namespace core
 {
     void Config::setDefaultConfig()
     {
-	    setifno(HOTKRY_SHOT_SCREEN, ConfigItem());
-        setifno(LANG, ConfigItem("zh_CN"));
+        bool missingKeys = true;
+        for(const auto& [key, defaultValue]:defaultConfigItems){
+            missingKeys |= setifno(key, ConfigItem(defaultValue));
+        }
+        if (missingKeys) {
+            saveConfigFile();
+        }
     }
 }
