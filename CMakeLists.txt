@@ -659,19 +659,17 @@ endif()
 #  20. 复制资源文件到输出目录
 # ============================================================================
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}")
-    # 确定最终输出目录
-    if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
-        set(OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-    else()
+    set(OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    if(NOT OUTPUT_DIR)
         set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin")
     endif()
 
-    # 在构建后复制
-    add_custom_command(TARGET screen-shot POST_BUILD
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}"
             "${OUTPUT_DIR}/$<CONFIG>/files"
-        COMMENT "Copying resources to executable directory"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}"
+        COMMENT "Copying resources if files changed"
     )
 endif()
 

@@ -109,7 +109,13 @@ namespace core {
 
         void initTray(){
             using namespace Tray;
-			std::string iconPath = appPath + "/files/icon/icon.png";
+#ifdef _WIN32
+            // 设置托盘图标为应用程序图标
+            std::string iconPath = appPath + "/files/img/icon.ico";
+#else
+			std::string iconPath = appPath + "/files/img/icon.png";
+#endif
+            Log.level(Level::INFO) << "Tray icon path: " << iconPath << op::endl;
 			::Tray::Tray tray("screen-shot", iconPath);
 			tray.addEntry(Button(utf82gbk("tray.exit"_lang), [&]() {
 				tray.exit();
