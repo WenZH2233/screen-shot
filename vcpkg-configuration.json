@@ -2,5 +2,8 @@
   "default-registry": {
     "kind": "builtin",
     "baseline": "1880fad95248dcf2b118aaead6d69cede0a39945"
-  }
+  },
+  "overlay-ports": [
+        "./vcpkg_overlay/ports"
+    ]
 }

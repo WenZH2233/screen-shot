@@ -10,6 +10,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "Items/button.h"
+
 namespace window{
     enum class WindowType {
         MainWindow,
@@ -28,6 +30,7 @@ namespace window{
         std::atomic_bool wantVisible{ false };
         std::thread thread;
         WindowType type;
+        std::vector<std::unique_ptr<window::Button>> buttons;
         Window()=default;
         Window(WindowType type, int width, int height, const std::string& title);
         void createWindow();
@@ -46,5 +49,5 @@ namespace window{
         void join();
 		void stopAndJoin();
     };
-    extern std::unordered_map<WindowType, std::unique_ptr<Window>> windows;
+    extern std::unordered_map<WindowType, Window*> windows;
 }

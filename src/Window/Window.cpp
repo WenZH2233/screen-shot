@@ -17,11 +17,11 @@
 using namespace window;
 using namespace core;
 
-std::unordered_map<WindowType, std::unique_ptr<Window>> window::windows;
+std::unordered_map<WindowType, Window*> window::windows;
 
 Window::Window(WindowType type, int width, int height, const std::string& title) :
 	type(type), width(width), height(height), title(title) {
-	window::windows[type] = std::unique_ptr<Window>(this);
+	window::windows[type] = this;
 }
 
 void Window::start() {
@@ -202,7 +202,7 @@ void Window::mainLoop() {
 
 			SkCanvas* canvas = surface->getCanvas();
 			if (canvas) {
-				SkColor bgColor = core::isDarkMode ? 0xFF1E1E1E : SK_ColorWHITE;
+				SkColor bgColor = core::isDarkMode ? SK_ColorDKGRAY : SK_ColorWHITE;
 				canvas->clear(bgColor);
 				onDraw(canvas);
 			}
@@ -227,4 +227,8 @@ void Window::mainLoop() {
 Window::~Window() {
 	stop();
 	join();
+	auto it = windows.find(type);
+	if (it != windows.end() && it->second == this) {
+		windows.erase(it);
+	}
 }
