@@ -3,18 +3,22 @@
 #include <functional>
 #include <string>
 #include <core/SkCanvas.h>
-#include <modules/svg/include/SkSVGDOM.h>
 #include <core/SkStream.h>
+#include <core/SkBitmap.h>
+
 #include "font.h"
 #include "rect.h"
 #include "color.h"
+
+struct resvg_render_tree;
 
 namespace window {
     class Button {
     public:
         Button(const core::Rect& rect);
         Button(){}
-        void draw(SkCanvas* canvas);
+        virtual ~Button() = default;
+        virtual void draw(SkCanvas* canvas);
         bool click(float x, float y){if(enabled && rect.contains(x, y) && onClick) { onClick(); return true; } return false;}
         bool MouseMove(float x, float y){if(enabled && rect.contains(x, y))isHovered=true; else isHovered=false; return isHovered;}
         void setOnClick(std::function<void()> newOnClick){ this->onClick = newOnClick; }
@@ -47,16 +51,18 @@ namespace window {
         bool showText=true;
     };
     class SvgButton : public Button {
+        bool parseSvg(const std::string& svgCode);
+        resvg_render_tree* tree = nullptr;
+        std::string svgCode;
+        float imageWidth = 0;
+        float imageHeight = 0;
     public:
         SvgButton(const core::Rect& rect, const std::string& svgCode);
         SvgButton(){}
-        void setSvgCode(const std::string& code){
-            auto stream = SkMemoryStream::MakeCopy(code.data(), code.size());
-            svgDom.reset();
-            svgDom = SkSVGDOM::MakeFromStream(*stream);
-        }
-        void draw(SkCanvas* canvas);
-    protected:
-        sk_sp<SkSVGDOM> svgDom;
+        ~SvgButton() override;
+        void loadSvg(const std::string& svgCode, core::Color backgroundColor = SK_ColorTRANSPARENT);
+        void setBackgroundColor(const core::Color& color){this->backgroundColor = color;}
+        void setSvgCode(const std::string& svgCode){loadSvg(svgCode, backgroundColor);}
+        void draw(SkCanvas* canvas)override;
     };
 }

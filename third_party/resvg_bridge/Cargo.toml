@@ -1,0 +1,14 @@
+[package]
+name = "resvg_bridge"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "resvg_bridge"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+log = "0.4"
+# crates.io 上没有发布 resvg-capi，这里直接依赖 resvg 主 crate（0.48），
+# 并在 lib.rs 里实现与官方 crates/c-api 等价的 C API。
+resvg = { version = "0.48", default-features = false, features = ["svgz", "text", "system-fonts", "memmap-fonts", "raster-images"] }

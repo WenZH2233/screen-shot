@@ -423,6 +423,23 @@ add_custom_target(native_theme_bridge_build ALL
     VERBATIM
 )
 
+# ==========================================================================
+#  resvg bridge — SVG rendering via C ABI
+# ==========================================================================
+set(RESVG_BRIDGE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/resvg_bridge")
+set(RESVG_BRIDGE_TARGET_DIR "${CMAKE_BINARY_DIR}/rust/resvg_bridge")
+set(RESVG_BRIDGE_BUILD_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/resvg_bridge_build.cmake")
+
+add_custom_target(resvg_bridge_build ALL
+    COMMAND ${CMAKE_COMMAND}
+            -DRB_CARGO=${CARGO_EXECUTABLE}
+            -DRB_DIR=${RESVG_BRIDGE_DIR}
+            -DRB_TARGET_DIR=${RESVG_BRIDGE_TARGET_DIR}
+            -DRB_CONFIG=$<CONFIG>
+            -P ${RESVG_BRIDGE_BUILD_SCRIPT}
+    COMMENT "Building Rust resvg bridge"
+    VERBATIM
+)
 
 # ============================================================================
 #  15. 查找并链接依赖库 — 在这里添加你的 find_package 和链接
@@ -459,17 +476,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_BINARY_DIR}/generated
     ${SRC_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party
     # 在这里添加你的 xxx_INCLUDE_DIRS
 )
 
 target_link_directories(${PROJECT_NAME} PRIVATE
     "$<$<CONFIG:Debug>:${RUST_BRIDGE_TARGET_DIR}/debug>$<$<NOT:$<CONFIG:Debug>>:${RUST_BRIDGE_TARGET_DIR}/release>"
+    "$<$<CONFIG:Debug>:${RESVG_BRIDGE_TARGET_DIR}/debug>$<$<NOT:$<CONFIG:Debug>>:${RESVG_BRIDGE_TARGET_DIR}/release>"
 )
 
 # ---- 链接 ----
 target_link_libraries(${PROJECT_NAME} PRIVATE
     # 在这里添加你的链接库
     native_theme_bridge
+    resvg_bridge
     tray
     glfw
     clip::clip
@@ -480,6 +500,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 add_dependencies(${PROJECT_NAME} native_theme_bridge_build)
+add_dependencies(${PROJECT_NAME} resvg_bridge_build)
 
 # ---- upgrade 子程序（如启用） ----
 if(ENABLE_UPGRADE)
@@ -520,6 +541,9 @@ if(WIN32)
         ole32
         ws2_32
         ntdll
+        advapi32
+        bcrypt
+        userenv
     )
 
     if(ENABLE_UPGRADE)

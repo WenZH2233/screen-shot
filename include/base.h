@@ -17,7 +17,7 @@ namespace core {
     extern Color systemBackgroundColor;
     extern Color systemTextColor;
     bool refreshSystemThemeFromRust();
-    std::string wstring2string(const std::wstring& wstr);
+    // resvg bridge (C++ 封装)
     std::wstring string2wstring(const std::string& str);
     std::string utf82gbk(const std::string& utf8_str);
     namespace core_init{

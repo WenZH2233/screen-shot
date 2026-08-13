@@ -61,6 +61,10 @@ compile_commands.json
 # vcpkg
 vcpkg_installed/
 
+# Rust / cargo build artifacts
+target/
+**/target/
+
 # debug information files
 *.dwo
 

@@ -4,8 +4,9 @@
 #include "log.h"
 
 #include <core/SkFontMgr.h>
+#include <core/SkImage.h>
 #include <ports/SkFontMgr_empty.h>
-
+#include <resvg.h>
 #include <algorithm>
 #include <vector>
 
@@ -25,18 +26,91 @@ TextButton::TextButton(const std::string& text, core::Font* font, const core::Co
 }
 
 SvgButton::SvgButton(const core::Rect& rect, const std::string& svgCode) : Button(rect) {
-    setSvgCode(svgCode);
+    loadSvg(svgCode);
+}
+
+SvgButton::~SvgButton(){
+    if(tree){
+        resvg_tree_destroy(tree);
+        tree = nullptr;
+    }
+}
+
+void SvgButton::loadSvg(const std::string& svgCode, core::Color backgroundColor) {
+    this->svgCode = svgCode;
+    this->backgroundColor = backgroundColor;
+    parseSvg(svgCode);
+}
+
+bool SvgButton::parseSvg(const std::string& svgCode) {
+    if(tree){
+        resvg_tree_destroy(tree);
+        tree = nullptr;
+    }
+    std::string svgCodeWithBackground = svgCode;
+    std::string backgroundColorHex = backgroundColor.toHexStr();
+    size_t pos=0;
+    while(pos=svgCodeWithBackground.find("currentColor", pos), pos!=std::string::npos){
+        svgCodeWithBackground.replace(pos, std::string("currentColor").length(), backgroundColorHex);
+        pos+=backgroundColorHex.length();
+    }
+    resvg_options* options = resvg_options_create();
+    if(!options){
+        Log.level(Level::ERROR) << "Failed to create resvg options";
+        return false;
+    }
+    int err=resvg_parse_tree_from_data(svgCodeWithBackground.c_str(), svgCodeWithBackground.size(), options, &tree);
+    resvg_options_destroy(options);
+    if(err!=RESVG_OK){
+        Log.level(Level::ERROR) << "Failed to parse SVG: " << err;
+        return false;
+    }
+    resvg_size size = resvg_get_image_size(tree);
+    imageWidth = size.width;
+    imageHeight = size.height;
+    return true;
 }
 
 void SvgButton::draw(SkCanvas* canvas) {
     if(!visible) return;
-    if(!svgDom) return;
-    svgDom->setContainerSize(SkSize::Make(rect.getWidth(), rect.getHeight()));
+    if(!tree){
+        Log.level(Level::ERROR) << "SVG tree is null, cannot draw";
+        return;
+    }
+    SkPaint paint;
+    paint.setStyle(SkPaint::kFill_Style);
+    paint.setColor(backgroundColor);
+    canvas->drawRect(rect, paint);
 
-    canvas->save();
-    canvas->translate(rect.getX(), rect.getY());
-    svgDom->render(canvas);
-    canvas->restore();
+    float scaleX = rect.getWidth() / imageWidth;
+    float scaleY = rect.getHeight() / imageHeight;
+    float scale = std::min(scaleX, scaleY);
+    float offsetX = rect.getX() + (rect.getWidth() - imageWidth * scale) / 2;
+    float offsetY = rect.getY() + (rect.getHeight() - imageHeight * scale) / 2;
+
+    resvg_transform transform = resvg_transform_identity();
+    transform.a = scale;
+    transform.b = 0.0f;
+    transform.c = 0.0f;
+    transform.d = scale;
+    transform.e = offsetX;
+    transform.f = offsetY;
+
+    SkImageInfo info = SkImageInfo::Make(rect.getWidth(), rect.getHeight(),
+     kRGBA_8888_SkColorType, kPremul_SkAlphaType);
+
+    SkBitmap bitmap;
+    if(!bitmap.tryAllocPixels(info)){
+        Log.level(Level::ERROR) << "Failed to allocate pixels for SVG rendering";
+        return;
+    }
+    ::resvg_render(tree, transform, rect.getWidth(), rect.getHeight(), (char*)bitmap.getPixels());
+    sk_sp<SkImage> image = SkImage::bitmap(bitmap);
+    if(!image){
+        Log.level(Level::ERROR) << "Failed to create SkImage from bitmap";
+        return;
+    }
+    canvas->drawImage(image, rect.getX(), rect.getY());
 }
 
 
