@@ -13,4 +13,6 @@
 // Language
 #define LANG "lang"
 
+#define SAVE_PATH "SavePath"
+
 #define DARK_MODE "dark_mode"

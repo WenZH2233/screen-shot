@@ -5,7 +5,6 @@
 static const std::unordered_map<std::string, std::string> defaultConfigItems = {
     {HOTKRY_SHOT_SCREEN, ""},
     {LANG, "zh_CN"},
-    
 };
 
 namespace core

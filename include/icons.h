@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "configKeys.h"
 namespace Icons {
 
     inline const char* const DarkMode = R"ICON(
@@ -1028,7 +1029,7 @@ namespace Icons {
 
     inline const std::unordered_map<std::string, const char*> All = {
         {"DarkMode", DarkMode},
-        {"Language", Language},
+        {LANG, Language},
         {"Screenshot", Screenshot},
         {"Pen", Pen},
         {"ArrowSelect", ArrowSelect},

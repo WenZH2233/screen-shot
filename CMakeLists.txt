@@ -692,7 +692,6 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}")
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}"
             "${OUTPUT_DIR}/$<CONFIG>/files"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCE_DIR}"
         COMMENT "Copying resources if files changed"
     )
 endif()

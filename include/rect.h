@@ -64,12 +64,47 @@ namespace core {
         void setWH(float width, float height) {
             p2.setPosition(p1.getOX() + width, p1.getOY() + height);
         }
+        void setX(float x) {
+            float width = getWidth();
+            p1.setPosition(x, p1.getOY());
+            p2.setPosition(x + width, p2.getOY());
+        }
+        void setY(float y) {
+            float height = getHeight();
+            p1.setPosition(p1.getOX(), y);
+            p2.setPosition(p2.getOX(), y + height);
+        }
+        void setEX(float ex) {
+            p2.setPosition(ex, p2.getOY());
+        }
+        void setEY(float ey) {
+            p2.setPosition(p2.getOX(), ey);
+        }
+        void setStartPoint(const Point& p) {
+            float width = getWidth();
+            float height = getHeight();
+            p1 = p;
+            p2.setPosition(p.getOX() + width, p.getOY() + height);
+        }
+        void setEndPoint(const Point& p) {
+            p2 = p;
+        }
+        void setWidth(float width) {
+            p2.setPosition(p1.getOX() + width, p2.getOY());
+        }
+        void setHeight(float height) {
+            p2.setPosition(p2.getOX(), p1.getOY() + height);
+        }
         float getX() const { return p1.getX(); }
         float getY() const { return p1.getY(); }
         float getEX() const { return p2.getX(); }
         float getEY() const { return p2.getY(); }
         float getWidth() const { return p2.getX() - p1.getX(); }
         float getHeight() const { return p2.getY() - p1.getY();}
+        float getOX() const {return p1.getOX();}
+        float getOY() const {return p1.getOY();}
+        float getOEX() const {return p2.getOX();}
+        float getOEY() const {return p2.getOY();}
         operator SkRect() const {
             return SkRect::MakeLTRB(p1.getX(), p1.getY(), p2.getX(), p2.getY());
         }

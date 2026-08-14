@@ -1,124 +1,22 @@
-#include "Window/Items/button.h"
 #include "Window/Items/font.h"
 
 #include "log.h"
 
+#include <core/SkCanvas.h>
 #include <core/SkFontMgr.h>
-#include <core/SkImage.h>
+#include <core/SkFont.h>
 #include <ports/SkFontMgr_empty.h>
-#include <resvg.h>
-#include <algorithm>
-#include <vector>
+
 
 using namespace core;
-using namespace window;
-
-Button::Button (const Rect& rect) : rect(rect) {}
-void Button::draw(SkCanvas* canvas) {
-    if(!visible) return;
-    SkPaint paint;
-    paint.setColor(isHovered ? SK_ColorLTGRAY : SK_ColorGRAY);
-    canvas->drawRect(SkRect::MakeLTRB(rect.getX(), rect.getY(), rect.getEX(), rect.getEY()), paint);
-}
-
-TextButton::TextButton(const std::string& text, core::Font* font, const core::Color& textColor) : Button(), font(font), textColor(textColor) {
-    this->text = text;
-}
-
-SvgButton::SvgButton(const core::Rect& rect, const std::string& svgCode) : Button(rect) {
-    loadSvg(svgCode);
-}
-
-SvgButton::~SvgButton(){
-    if(tree){
-        resvg_tree_destroy(tree);
-        tree = nullptr;
-    }
-}
-
-void SvgButton::loadSvg(const std::string& svgCode, core::Color backgroundColor) {
-    this->svgCode = svgCode;
-    this->backgroundColor = backgroundColor;
-    parseSvg(svgCode);
-}
-
-bool SvgButton::parseSvg(const std::string& svgCode) {
-    if(tree){
-        resvg_tree_destroy(tree);
-        tree = nullptr;
-    }
-    std::string svgCodeWithBackground = svgCode;
-    std::string backgroundColorHex = backgroundColor.toHexStr();
-    size_t pos=0;
-    while(pos=svgCodeWithBackground.find("currentColor", pos), pos!=std::string::npos){
-        svgCodeWithBackground.replace(pos, std::string("currentColor").length(), backgroundColorHex);
-        pos+=backgroundColorHex.length();
-    }
-    resvg_options* options = resvg_options_create();
-    if(!options){
-        Log.level(Level::ERROR) << "Failed to create resvg options";
-        return false;
-    }
-    int err=resvg_parse_tree_from_data(svgCodeWithBackground.c_str(), svgCodeWithBackground.size(), options, &tree);
-    resvg_options_destroy(options);
-    if(err!=RESVG_OK){
-        Log.level(Level::ERROR) << "Failed to parse SVG: " << err;
-        return false;
-    }
-    resvg_size size = resvg_get_image_size(tree);
-    imageWidth = size.width;
-    imageHeight = size.height;
-    return true;
-}
-
-void SvgButton::draw(SkCanvas* canvas) {
-    if(!visible) return;
-    if(!tree){
-        Log.level(Level::ERROR) << "SVG tree is null, cannot draw";
-        return;
-    }
-    SkPaint paint;
-    paint.setStyle(SkPaint::kFill_Style);
-    paint.setColor(backgroundColor);
-    canvas->drawRect(rect, paint);
-
-    float scaleX = rect.getWidth() / imageWidth;
-    float scaleY = rect.getHeight() / imageHeight;
-    float scale = std::min(scaleX, scaleY);
-    float offsetX = rect.getX() + (rect.getWidth() - imageWidth * scale) / 2;
-    float offsetY = rect.getY() + (rect.getHeight() - imageHeight * scale) / 2;
-
-    resvg_transform transform = resvg_transform_identity();
-    transform.a = scale;
-    transform.b = 0.0f;
-    transform.c = 0.0f;
-    transform.d = scale;
-    transform.e = offsetX;
-    transform.f = offsetY;
-
-    SkImageInfo info = SkImageInfo::Make(rect.getWidth(), rect.getHeight(),
-     kRGBA_8888_SkColorType, kPremul_SkAlphaType);
-
-    SkBitmap bitmap;
-    if(!bitmap.tryAllocPixels(info)){
-        Log.level(Level::ERROR) << "Failed to allocate pixels for SVG rendering";
-        return;
-    }
-    ::resvg_render(tree, transform, rect.getWidth(), rect.getHeight(), (char*)bitmap.getPixels());
-    sk_sp<SkImage> image = SkImage::bitmap(bitmap);
-    if(!image){
-        Log.level(Level::ERROR) << "Failed to create SkImage from bitmap";
-        return;
-    }
-    canvas->drawImage(image, rect.getX(), rect.getY());
-}
 
 
 bool core::Font::loadFromFile(const std::string& path, SkScalar size) {
     auto fontMgr = SkFontMgr_New_Custom_Empty();
     auto typeface = fontMgr ? fontMgr->makeFromFile(path.c_str()) : nullptr;
+    Log.level(Level::INFO) << "Loading font from file: " << path << " with size: " << size << op::endl;
     if (!typeface) {
-        Log.level(Level::ERROR) << "Failed to load font from file: " << path;
+        Log.level(Level::ERROR) << "Failed to load font from file: " << path << " with size: " << size << op::endl;
         return false;
     }
     skFont = std::make_unique<SkFont>();
@@ -127,16 +25,20 @@ bool core::Font::loadFromFile(const std::string& path, SkScalar size) {
     return true;
 }
 
-void Font::drawText(SkCanvas* canvas, const std::string& text, core::Point point, const SkPaint& paint) {
-    canvas->drawSimpleText(text.c_str(), text.size(), SkTextEncoding::kUTF8, point.getX(), point.getY(), *skFont.get(), paint);
+void Font::drawText(SkCanvas* canvas, const std::string& text, core::Point point, const SkPaint& paint, float scale) {
+    if(scale<=0.0f)return;
+    SkFont scaledFont = *skFont.get();
+    scaledFont.setSize(skFont->getSize() * scale);
+
+    canvas->drawSimpleText(text.c_str(), text.size(), SkTextEncoding::kUTF8, point.getX(), point.getY(), scaledFont, paint);
 }
 
-void Font::drawTextBetween(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint) {
+void Font::drawTextBetween(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint, float scale) {
     if (text.empty() || rect.getWidth() <= 0 || rect.getHeight() <= 0) {
         return;
     }
 
-    const textMetrics sampleMetrics = measureText("A");
+    const textMetrics sampleMetrics = measureText("A", scale);
     const float lineHeight = std::max(sampleMetrics.height, 1.0f) * 1.2f;
     const float maxWidth = rect.getWidth();
     const float maxHeight = rect.getHeight();
@@ -209,27 +111,42 @@ void Font::drawTextBetween(SkCanvas* canvas, const std::string& text, core::Rect
         const float lineWidth = measureText(line).width;
         const float x = rect.getX() + (rect.getWidth() - lineWidth) / 2;
         const float y = startY + i * lineHeight;
-        drawText(canvas, line, core::Point(x, y), paint);
+        drawText(canvas, line, core::Point(x, y), paint, scale);
     }
 }
 
-void Font::drawTextVertical(SkCanvas* canvas, const std::string& text, core::Point point, const SkPaint& paint) {
+void Font::drawTextFill(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint) {
+    if(text.empty() || rect.getWidth() <= 0 || rect.getHeight() <= 0) {
+        return;
+    }
+    textMetrics metrics = measureText(text);
+    float scaleX = rect.getWidth() / metrics.width;
+    float scaleY = rect.getHeight() / metrics.height;
+    float scale = std::min(scaleX, scaleY);
+    float scaledWidth = metrics.width * scale;
+    float scaledHeight = metrics.height * scale;
+    float x = rect.getX() + (rect.getWidth() - scaledWidth) / 2;
+    float y = rect.getY() + (rect.getHeight() - scaledHeight) / 2 + scaledHeight * 0.8f;
+    drawText(canvas, text, core::Point(x, y), paint, scale);
+}
+
+void Font::drawTextVertical(SkCanvas* canvas, const std::string& text, core::Point point, const SkPaint& paint, float scale) {
     float x = point.getX();
     float y = point.getY();
     for(char c : text) {
         std::string s(1, c);
-        textMetrics metrics = measureText(s);
-        drawText(canvas, s, core::Point(x, y), paint);
+        textMetrics metrics = measureText(s, scale);
+        drawText(canvas, s, core::Point(x, y), paint, scale);
         y += metrics.height;
     }
 }
 
-void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint) {
+void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint, float scale) {
     if (text.empty() || rect.getWidth() <= 0 || rect.getHeight() <= 0) {
         return;
     }
 
-    const textMetrics sampleMetrics = measureText("A");
+    const textMetrics sampleMetrics = measureText("A", scale);
     const float maxWidth = rect.getWidth();
     const float maxHeight = rect.getHeight();
     const float lineHeight = std::max(sampleMetrics.height, 1.0f) * 1.2f;
@@ -252,7 +169,7 @@ void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, co
         }
 
         const std::string candidate = currentLine + ch;
-        if (measureText(candidate).width <= maxWidth) {
+        if (measureText(candidate, scale).width <= maxWidth) {
             currentLine = candidate;
             continue;
         }
@@ -266,7 +183,7 @@ void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, co
         }
 
         const std::string singleChar(1, ch);
-        if (measureText(singleChar).width > maxWidth) {
+        if (measureText(singleChar, scale).width > maxWidth) {
             currentLine.clear();
             break;
         }
@@ -284,7 +201,7 @@ void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, co
 
     if (!lines.empty() && lines.size() == static_cast<size_t>(maxLines) && !text.empty()) {
         std::string lastLine = lines.back();
-        while (!lastLine.empty() && measureText(lastLine + "...").width > maxWidth) {
+        while (!lastLine.empty() && measureText(lastLine + "...", scale).width > maxWidth) {
             lastLine.pop_back();
         }
         if (lastLine.empty()) {
@@ -299,26 +216,51 @@ void Font::drawTextVerticalBetween(SkCanvas* canvas, const std::string& text, co
 
     for (size_t i = 0; i < lines.size(); ++i) {
         const std::string& line = lines[i];
-        const float lineWidth = measureText(line).width;
+        const float lineWidth = measureText(line, scale).width;
         const float x = rect.getX() + (rect.getWidth() - lineWidth) / 2;
         const float y = startY + i * lineHeight;
-        drawText(canvas, line, core::Point(x, y), paint);
+        drawText(canvas, line, core::Point(x, y), paint, scale);
     }
 }
 
-
-textMetrics Font::measureText(const std::string& text) {
-    SkRect bounds;
-    skFont->measureText(text.c_str(), text.size(), SkTextEncoding::kUTF8, &bounds);
-    return {bounds.width(), bounds.height()};
+void Font::drawTextVerticalFill(SkCanvas* canvas, const std::string& text, core::Rect rect, const SkPaint& paint) {
+    if(text.empty() || rect.getWidth() <= 0 || rect.getHeight() <= 0) {
+        return;
+    }
+    textMetrics metrics = measureTextVertical(text);
+    float scaleX = rect.getWidth() / metrics.width;
+    float scaleY = rect.getHeight() / metrics.height;
+    float scale = std::min(scaleX, scaleY);
+    float scaledWidth = metrics.width * scale;
+    float scaledHeight = metrics.height * scale;
+    float x = rect.getX() + (rect.getWidth() - scaledWidth) / 2;
+    float y = rect.getY() + (rect.getHeight() - scaledHeight) / 2 + scaledHeight * 0.8f;
+    float currentY = y;
+    for(char c : text) {
+        if(c=='\n') continue;
+        std::string s(1, c);
+        textMetrics charMetrics = measureText(s, 1.0f);
+        float charWidth = charMetrics.width * scale;
+        float charHeight = charMetrics.height * scale;
+        float charX = x + (scaledWidth - charWidth) / 2;
+        float charY = currentY+charHeight*0.8f;
+        drawText(canvas, s, core::Point(charX, charY), paint, scale);
+        currentY += charMetrics.height;
+    }
 }
 
-textMetrics Font::measureTextVertical(const std::string& text) {
+textMetrics Font::measureText(const std::string& text, float scale) {
+    SkRect bounds;
+    skFont->measureText(text.c_str(), text.size(), SkTextEncoding::kUTF8, &bounds);
+    return {bounds.width() * scale, bounds.height() * scale};
+}
+
+textMetrics Font::measureTextVertical(const std::string& text, float scale) {
     float width = 0;
     float height = 0;
     for(char c : text) {
         std::string s(1, c);
-        textMetrics metrics = measureText(s);
+        textMetrics metrics = measureText(s, scale);
         width = std::max(width, metrics.width);
         height += metrics.height;
     }
